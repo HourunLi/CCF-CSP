@@ -20,7 +20,7 @@ struct Junction {
     int D;
 }junctions[1005];
 
-int r[1005];
+int r[2005];
 int size[2005];
 int edge[2005][1005];  // edge between [neurs or pulses] and junctions
 double **Ik;
@@ -36,7 +36,8 @@ int main() {
     double v_, u_, a_, b_, c_, d_;
 
     while(cnt < N) {
-        cin >> t >> v_ >> u_ >> a_ >> b_ >> c_ >> d_;
+        // cin >> t >> v_ >> u_ >> a_ >> b_ >> c_ >> d_;
+        scanf("%d %lf %lf %lf %lf %lf %lf", &t, &v_, &u_, &a_, &b_, &c_, &d_);
         for(int i = 0; i < t; i++) {
             neurs[cnt].v = v_;
             neurs[cnt].u = u_;
@@ -47,13 +48,15 @@ int main() {
         }
     }
 
-    for(int i = 0; i < P; i++) {
-        cin >> r[i];
+    for(int i = N; i < N+P; i++) {
+        // cin >> r[i];
+        scanf("%d", &r[i]);
     }
 
     int maxMod = 0, mod = 0;
     for(int i = 0; i < S; i++) {
-        cin >> junctions[i].src >> junctions[i].dst >> junctions[i].w >> junctions[i].D;
+        // cin >> junctions[i].src >> junctions[i].dst >> junctions[i].w >> junctions[i].D;
+        scanf("%d %d %lf %d", &junctions[i].src, &junctions[i].dst, &junctions[i].w, &junctions[i].D);
         edge[junctions[i].src][size[junctions[i].src]++] = i;
         maxMod = max(maxMod, junctions[i].D);
     }
@@ -63,39 +66,36 @@ int main() {
     for(int i = 0; i < mod; i++) {
         Ik[i] = new double[1005]();
     }
+    size_t sizeOfIk = sizeof(double) * 1005;
     // simulate
     for(int i = 0; i < T; i++) {
+        int t = i%mod;
         for(int j = 0; j < N; j++) {
             double v = neurs[j].v;
             double u = neurs[j].u;
-            double a = neurs[j].a;
-            double b = neurs[j].b;
-            neurs[j].v = v + delta_T*(0.04*v*v + 5*v + 140 - u) + Ik[i%mod][j];
-            neurs[j].u = u + delta_T*a*(b*v - u);
+            neurs[j].v = v + delta_T*(0.04*v*v + 5*v + 140 - u) + Ik[t][j];
+            neurs[j].u = u + delta_T*neurs[j].a*(neurs[j].b*v - u);
             if(neurs[j].v >= 30) {
                 for(int l = 0; l < size[j]; l++) {
                     Junction junc = junctions[edge[j][l]];
                     Ik[(i + junc.D)%mod][junc.dst] += junc.w;
                 }
-                neurs[j].times++;
+                ++neurs[j].times;
                 neurs[j].v = neurs[j].c;
                 neurs[j].u += neurs[j].d;
             }
         }
 
-        for(int j = 0; j < P; j++) {
+        for(int j = N; j < N+P; j++) {
             int mrand = myrand();
             if (r[j] > mrand) {
-                for(int l = 0; l < size[j+N]; l++) {
-                    Junction junc = junctions[edge[j+N][l]];
+                for(int l = 0; l < size[j]; l++) {
+                    Junction junc = junctions[edge[j][l]];
                     Ik[(i + junc.D)%mod][junc.dst] += junc.w;
                 }
             }
         }
-
-        for(int j = 0; j < N; j++) {
-            Ik[i%mod][j] = 0;
-        }
+        memset(Ik[t], 0, sizeOfIk);
     }
 
     int timeRetMax = INT_MIN, timeRetMin = INT_MAX;
