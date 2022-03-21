@@ -1,114 +1,119 @@
-#include <iostream>
-#include <string.h>
-#include <algorithm>
+#include<bits/stdc++.h>
 using namespace std;
-const int M = 1e4+10;
-int m, Tdef, Tmax, Tmin, n;
-string h;
-struct IP{
-    int state; //0:未分配；1:待分配；2:占用；3:过期
-    int t;
-    string owner;
-} ip[M];
+#define N 10005
 
-void update_ips_state(int tc) {
+int n, T_def, T_max, T_min;
+string H;
+
+struct IP{
+    int state; // 0: free, 1: waiting fot allocation, 2 for occupied, 3 for expired
+    int t;
+    string owner; 
+}ipPool[N];
+
+void initIpPool() {
     for(int i = 1; i <= n; i++) {
-        if(ip[i].t > 0 && ip[i].t <= tc) {
-            if(ip[i].state==1) {
-                ip[i].state = 0;
-                ip[i].t = 0;
-                ip[i].owner = "";
-            } else {
-                ip[i].state = 3;
-                ip[i].t = 0;
-            }
-        }
+        ipPool[i].state = 0;
+        ipPool[i].owner = "";
+        ipPool[i].t = 0;
     }
     return;
 }
 
-//检查是否有占用者为发送主机的ip
-int get_ip_by_owner(string client) {
-    for(int i = 1; i <= n; i++) 
-        if(ip[i].owner == client)
+void updateIpState(int time) {
+    for(int i = 1; i <= n; i++) {
+        if(time >= ipPool[i].t)
+            if(ipPool[i].state == 1) {
+                ipPool[i].state = 0;
+                ipPool[i].owner = "";
+                ipPool[i].t = 0;
+            }else if(ipPool[i].state == 2){
+                ipPool[i].state = 3;
+                ipPool[i].t = 0;
+            }
+    }
+    return;
+}
+int getIpByOwner(string client) {
+    for(int i = 1; i <= n; i++) {
+        if(ipPool[i].owner == client) {
             return i;
+        }
+    }
     return 0;
 }
-//选取特定状态的ip地址
-int get_ip_by_state(int state) {
-    for(int i=1;i<=n;i++) 
-        if(ip[i].state == state)
+
+int getTheLeastFreeIp() {
+    for(int i = 1; i <= n; i++) {
+        if(ipPool[i].state == 0) {
             return i;
+        }
+    }
+    return 0;
+}
+
+int getTheLeastExpiredIp() {
+    for(int i = 1; i <= n; i++) {
+        if(ipPool[i].state == 3) {
+            return i;
+        }
+    }
     return 0;
 }
 
 int main() {
-    cin >> n >> Tdef >> Tmax >> Tmin >> h;
-    cin >> m;
-    while(m--) {
-        int tc;
-        string client,server,type;
-        int id,te;
-        cin >> tc >> client >> server >> type >> id >> te;
-        if(server != h && server != "*") {
-            if(type != "REQ") 
-                continue;
-        }
-        if(type != "DIS" && type != "REQ")
-            continue;
-        if((server == "*" && type != "DIS") || (server == h && type == "DIS"))
-            continue;
-
-        update_ips_state(tc);
-       
+    // freopen("./test.txt", "r", stdin);
+    initIpPool();
+    cin >> n >> T_def >> T_max >> T_min >> H;
+    int t;
+    cin >> t;
+    string src, dst, type;
+    int time, ip, expire;
+    while(t--) {
+        cin >> time >> src >> dst >> type >> ip >> expire;
+        if(type != "DIS" && type != "REQ") continue;
+        if(dst == "*" && type != "DIS") continue;
+        if(dst == H && type == "DIS") continue;
+        if(!(dst == H || dst == "*") && type != "REQ") continue;
+        
+        updateIpState(time);
         if(type == "DIS") {
-            int k = get_ip_by_owner(client);
-            if(!k) 
-                k = get_ip_by_state(0);
-            if(!k) 
-                k = get_ip_by_state(3);
-            if(!k)
-                continue;
+            int ip = getIpByOwner(src);
+            if(!ip) ip = getTheLeastFreeIp();
+            if(!ip) ip = getTheLeastExpiredIp();
+            if(!ip) continue;
 
-            ip[k].state = 1;
-            ip[k].owner = client;
-
-            if(te == 0){
-                ip[k].t = tc+Tdef;
-            } else {
-                int t = te-tc;
-                //t不能小于最低时间也不能大于最长时间
-                t = max(t, Tmin);
-                t = min(t, Tmax);
-                ip[k].t = tc + t;//更新过期时间
+            ipPool[ip].state = 1;
+            ipPool[ip].owner = src;
+            if(!expire) {
+                ipPool[ip].t = time + T_def;
+            }else{
+                ipPool[ip].t = time + max(min(expire-time, T_max), T_min);
             }
-            cout << h << " " << client << " OFR " << k << " " << ip[k].t << endl;
-        } else {
-            if(server != h) {
+            cout << H << " " << src << " OFR " << ip << " " << ipPool[ip].t << endl;   
+        } else if (type == "REQ") {
+            if(dst != H) {
                 for(int i = 1; i <= n; i++) {
-                    if(ip[i].owner == client && ip[i].state == 1) {
-                        ip[i].state = 0;
-                        ip[i].owner = "";
-                        ip[i].t = 0;
+                    if(ipPool[i].state == 1 && ipPool[i].owner == src) {
+                        ipPool[i].state = 0;
+                        ipPool[i].owner = "";
+                        ipPool[i].t = 0;
                     }
                 }
                 continue;
             }
-            //2.检查ip地址是否在地址池中，且占有者为发送主机
-            if(!(id >= 1 && id <=n && ip[id].owner == client)) {
-                cout << h << " " << client << " NAK "<< id << " " << 0 << endl;
-            } else {
-                ip[id].state=2;
-                if(te==0) {
-                    ip[id].t = tc+Tdef;
-                } else {
-                    int t = te-tc;
-                    t = max(t, Tmin);
-                    t = min(t, Tmax);
-                    ip[id].t = tc + t;
-                }
-                cout<< h << " " << client << " ACK " << id << " " << ip[id].t <<endl;
+            if(!(ip >= 1 && ip <= n && ipPool[ip].owner == src)) {
+                cout << H << " " << src << " NAK " << ip << " " << 0 << endl;
+                continue;
             }
+
+            ipPool[ip].state = 2;
+            if(!expire) {
+                ipPool[ip].t = time + T_def;
+            }else{
+                ipPool[ip].t = time + max(min(expire-time, T_max), T_min);
+            }
+            cout << H << " " << src << " ACK " << ip << " " << ipPool[ip].t << endl;   
         }
     }
     return 0;
