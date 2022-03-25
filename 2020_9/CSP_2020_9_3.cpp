@@ -10,7 +10,7 @@ enum TYPE{
     NOR
 };
 
-bool visited[505];
+char visited[505];
 
 struct Node {
     enum TYPE type;
@@ -72,14 +72,31 @@ int getResult(int *input, int number, char type) {
     return nodes[number].out;
 }
 
-// bool judge(int N) {
-//     for(int i = 0; i < N; i++) {
-//         if(is_circle(i)){
-//             return false;
-//         }
-//     }
-//     return 
-// }
+bool is_circle(int ind) {
+    if(visited[ind] == 2) return false;
+    if(visited[ind] == 1) return true;
+
+    bool ret = false;
+    visited[ind] = 1;
+    for(int i = 1; i <= nodes[ind].num; i++) {
+        if(nodes[ind].in_type[i] == 'I') 
+            continue;
+        ret |= is_circle(nodes[ind].in_num[i]);
+    }
+    visited[ind] = 2;
+    return ret;
+}
+
+bool judge(int N) {
+    for(int i = 1; i <= N; i++) {
+        if(is_circle(i)){
+            return true;
+        }
+    }
+    return false;
+}
+
+
 int main() {
     int Q;
     // freopen("test.txt", "r", stdin);
@@ -121,27 +138,23 @@ int main() {
         }
 
         memset(visited, 0, sizeof(visited));
-        // bool flag = judge();
-        // if(flag){
-        //     cout << "LOOP\n";
-        // }
+
+        bool flag = judge(N);
+        if(flag){
+            cout << "LOOP\n";
+        }
 
         int number, s_i;
         for(int j = 1; j <= S; j++) {
-            // cout << "---------\n";
             cin >> s_i;
             memset(visited, 0, sizeof(visited));
             for(int l = 1; l <= s_i; l++) {
                 cin >> number;
-                // if(!flag) 
+                if(!flag) 
                     cout << getResult(input[j], number, 'O') << " ";
             }
-            // if(!flag) 
+            if(!flag) 
                 cout << endl;
-            // for(int i = 1; i <= N; i++) {
-            //     cout << visited[i] << " " << i << " " << nodes[i].out << endl;
-            // }
-            // cout << "----------\n";
         }
     }
     return 0;
