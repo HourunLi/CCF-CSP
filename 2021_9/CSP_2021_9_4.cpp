@@ -10,7 +10,7 @@ bool getKBit(int v, int k) {
 
 int getBits(int v, int N) {
     int ret = 0;
-    for(int i = 0; i < N ;i++) {
+    for(int i = 0; i < N ;i++){
         ret += (v >> i) & 1;
     }
     return  ret;
